@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "549297268901",
+    "project_id": "abschlussarbeit-firstapp",
+    "storage_bucket": "abschlussarbeit-firstapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:549297268901:android:913dbee84d06fee300454c",
+        "android_client_info": {
+          "package_name": "com.example.firstapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8KJiR1sH6m5LUyt5IuPkZcup4Tqki7Co"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
