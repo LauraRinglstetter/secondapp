@@ -1,4 +1,4 @@
-import 'package:firstapp/utilities/dialogs/generic_dialog.dart';
+import 'package:secondapp/utilities/dialogs/generic_dialog.dart';
 import 'package:flutter/material.dart';
 
 Future<bool> showLogOutDialog(BuildContext context,) {

@@ -1,10 +1,10 @@
-import 'package:firstapp/services/auth/auth_service.dart';
-import 'package:firstapp/utilities/dialogs/cannot_share_empty_note_dialog.dart';
-import 'package:firstapp/utilities/generics/get_arguments.dart';
-import 'package:firstapp/services/cloud/cloud_note.dart';
-import 'package:firstapp/services/cloud/firebase_cloud_storage.dart';
+import 'package:secondapp/services/auth/auth_service.dart';
+import 'package:secondapp/utilities/dialogs/cannot_share_empty_note_dialog.dart';
+import 'package:secondapp/utilities/generics/get_arguments.dart';
+import 'package:secondapp/services/cloud/cloud_note.dart';
+import 'package:secondapp/services/cloud/firebase_cloud_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:firstapp/utilities/dialogs/share_note_dialog.dart';
+import 'package:secondapp/utilities/dialogs/share_note_dialog.dart';
 
 
 class CreateUpdateNoteView extends StatefulWidget {
@@ -26,19 +26,6 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
     super.initState();
   }
 
-  // void _textControllerListener() async {
-  //   final note = _note;
-  //   if(note == null) {
-  //     return;
-  //   }
-  //   final text = _textController.text;
-  //   await _notesService.updateNote(documentId: note.documentId, text: text);
-  // }
-
-  // void _setupTextControllerListener() {
-  //   _textController.removeListener(_textControllerListener);
-  //   _textController.addListener(_textControllerListener);
-  // }
 
   Future<CloudNote> createOrGetExistingNote(BuildContext context) async {
 
@@ -62,20 +49,6 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
     return newNote;
   }
 
-  // void _deleteNoteIfTextIsEmpty() {
-  //   final note = _note;
-  //   if (_textController.text.isEmpty && note != null) {
-  //     _notesService.deleteNote(documentId: note.documentId);
-  //   }
-  // }
-
-  // void _saveNoteIfTextNotEmpty() async {
-  //   final note = _note;
-  //   final text = _textController.text;
-  //   if(note != null && text.isNotEmpty) {
-  //     await _notesService.updateNote(documentId: note.documentId, text: text);
-  //   }
-  // }
 
   @override
   void dispose() {

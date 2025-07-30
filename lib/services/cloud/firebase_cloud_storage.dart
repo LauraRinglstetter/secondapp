@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firstapp/services/cloud/cloud_note.dart';
-import 'package:firstapp/services/cloud/cloud_storage_constants.dart';
-import 'package:firstapp/services/cloud/cloud_storage_exceptions.dart';
+import 'package:secondapp/services/cloud/cloud_note.dart';
+import 'package:secondapp/services/cloud/cloud_storage_constants.dart';
+import 'package:secondapp/services/cloud/cloud_storage_exceptions.dart';
 
 //Singleton-Klasse
 class FirebaseCloudStorage {
@@ -19,16 +19,6 @@ class FirebaseCloudStorage {
     }
   }
 
-  // Future<void> updateNote({
-  //   required String documentId,
-  //   required String text,
-  // }) async {
-  //   try {
-  //     notes.doc(documentId).update({textFieldName: text});
-  //   } catch (e) {
-  //       throw CouldNotUpdateNoteException();
-  //   }
-  // }
 
   //gibt Live-Stream aller Notizen zurück die Nutzer erstellt hat oder die mit ihm geteilt wurden
   Stream<Iterable<CloudNote>> allNotes({

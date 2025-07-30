@@ -1,6 +1,6 @@
-import 'package:firstapp/services/auth/auth_exceptions.dart';
-import 'package:firstapp/services/auth/auth_provider.dart';
-import 'package:firstapp/services/auth/auth_user.dart';
+import 'package:secondapp/services/auth/auth_exceptions.dart';
+import 'package:secondapp/services/auth/auth_provider.dart';
+import 'package:secondapp/services/auth/auth_user.dart';
 import 'package:test/test.dart';
 
 void main(){
