@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
+import 'package:secondapp/services/auth/local_session.dart';
 import 'package:secondapp/services/local/local_note.dart';
 import 'package:secondapp/services/local/local_paragraph.dart';
-import 'package:secondapp/services/cloud/cloud_note.dart';
 import 'package:secondapp/services/note_storage/hive_note_storage.dart';
-import 'package:secondapp/services/auth/auth_service.dart';
-import 'package:hive/hive.dart';
 
 class CreateUpdateNoteHiveView extends StatefulWidget {
   const CreateUpdateNoteHiveView({super.key});
@@ -16,17 +13,28 @@ class CreateUpdateNoteHiveView extends StatefulWidget {
 
 class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
   final _textController = TextEditingController();
-  CloudNote? _note;
+  LocalNote? _note;
   final _noteStorage = HiveNoteStorage();
 
   @override
-  void initState() {
-    super.initState();
-    _createNoteIfNeeded();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Nur setzen, wenn noch nicht passiert
+    if (_note != null) return;
+
+    final maybeNote = ModalRoute.of(context)?.settings.arguments;
+    if (maybeNote != null && maybeNote is LocalNote) {
+      // Existierende Notiz wurde übergeben
+      _note = maybeNote;
+    } else {
+      // Keine Notiz übergeben → neue erstellen
+      _createNewNote();
+    }
   }
 
-  Future<void> _createNoteIfNeeded() async {
-    final user = AuthService.firebase().currentUser!;
+  Future<void> _createNewNote() async {
+    final user = LocalSession.currentUser!;
     final note = await _noteStorage.createNote(ownerUserId: user.id);
     setState(() {
       _note = note;
@@ -34,34 +42,20 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
   }
 
   Future<void> _addParagraph(String text) async {
-    final user = AuthService.firebase().currentUser!;
-    final box = await Hive.openBox<LocalNote>('notes');
-    final localNote = box.get(_note!.documentId);
-    if (localNote != null) {
-      localNote.content.add(LocalParagraph(
-        author: user.email,
-        text: text,
-        timestamp: DateTime.now(),
-      ));
-      localNote.lastModified = DateTime.now();
-      await localNote.save();
+    final user = LocalSession.currentUser!;
+    final id = _note!.id;
 
-      final updatedNote = CloudNote(
-        documentId: localNote.id,
-        ownerUserId: localNote.userId,
-        content: localNote.content.map((p) => NoteParagraph(
-          author: p.author,
-          text: p.text,
-          timestamp: p.timestamp,
-        )).toList(),
-        sharedWith: localNote.sharedWith,
-      );
+    await _noteStorage.addParagraph(
+      noteId: id,
+      author: user.email,
+      text: text,
+    );
 
-      setState(() {
-        _note = updatedNote;
-        _textController.clear();
-      });
-    }
+    final updated = await _noteStorage.getNoteById(id);
+    setState(() {
+      _note = updated;
+      _textController.clear();
+    });
   }
 
   @override
@@ -74,7 +68,6 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // Absatzliste
                 Expanded(
                   child: ListView.builder(
                     itemCount: note.content.length,
@@ -87,8 +80,6 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
                     },
                   ),
                 ),
-
-                // Eingabe & Button
                 Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Column(

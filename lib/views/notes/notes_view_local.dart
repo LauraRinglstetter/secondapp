@@ -67,32 +67,31 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
           ),
         ],
       ),
-      body: StreamBuilder(
-        stream: _notesService.allNotes(ownerUserId: userId),
+      body: FutureBuilder(
+        future: _notesService.getAllNotes(ownerUserId: userId),
         builder: (context, snapshot) {
-          switch (snapshot.connectionState) {
-            case ConnectionState.waiting:
-            case ConnectionState.active:
-              if (snapshot.hasData) {
-                final allNotes = snapshot.data as Iterable<LocalNote>;
-                return NotesListView(
-                  notes: allNotes,
-                  currentUserId: userId,
-                  onDeleteNote: (note) async {
-                    await _notesService.deleteNote(documentId: note.id);
-                  },
-                  onTap: (note) {
-                    Navigator.of(context).pushNamed(
-                      createUpdateNoteHiveView,
-                      arguments: note,
-                    );
-                  },
-                );
-              } else {
-                return const Center(child: CircularProgressIndicator());
-              }
-            default:
-              return const Center(child: CircularProgressIndicator());
+          if (snapshot.connectionState == ConnectionState.done) {
+            if (snapshot.hasData) {
+              final allNotes = snapshot.data as Iterable<LocalNote>;
+              return NotesListView(
+                notes: allNotes,
+                currentUserId: userId,
+                onDeleteNote: (note) async {
+                  await _notesService.deleteNote(documentId: note.id);
+                  setState(() {}); // Ansicht nach Löschung aktualisieren
+                },
+                onTap: (note) {
+                  Navigator.of(context).pushNamed(
+                    createUpdateNoteHiveView,
+                    arguments: note,
+                  );
+                },
+              );
+            } else {
+              return const Center(child: Text('Keine Notizen gefunden.'));
+            }
+          } else {
+            return const Center(child: CircularProgressIndicator());
           }
         },
       ),
