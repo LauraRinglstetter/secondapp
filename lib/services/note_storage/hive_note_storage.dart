@@ -50,6 +50,7 @@ class HiveNoteStorage implements NoteStorage {
         timestamp: DateTime.now(),
       ));
       note.lastModified = DateTime.now();
+      note.synced = false; 
       await note.save();
     }
   }
@@ -64,7 +65,8 @@ class HiveNoteStorage implements NoteStorage {
   @override
   Future<Iterable<LocalNote>> getAllNotes({required String ownerUserId}) async {
     final box = await _openBox();
-    return box.values.where((n) => n.userId == ownerUserId);
+    return box.values.where((n) =>
+    n.userId == ownerUserId || n.sharedWith.contains(ownerUserId));
   }
 
   @override
@@ -74,9 +76,49 @@ class HiveNoteStorage implements NoteStorage {
     // Hinweis: kein echter Stream, sondern einmalige Ausgabe
   }
 
+  Future<void> shareNoteWithUser({
+    required String noteId,
+    required String otherUserId,
+  }) async {
+    final box = await _openBox();
+    final note = box.get(noteId);
+    if (note != null && !note.sharedWith.contains(otherUserId)) {
+      note.sharedWith.add(otherUserId);
+      note.synced = false;
+      await note.save();
+    }
+  }
+
+
+
   @override
   Future<void> updateNote({required String documentId, required String text}) async {
     // noch nicht genutzt → kannst du leer lassen oder richtig implementieren
     throw UnimplementedError('updateNote() ist lokal noch nicht implementiert');
   }
+  //Liste aller Notizen, die noch nicht synchronisiert wurden
+  Future<List<LocalNote>> getUnsyncedNotes() async {
+    final box = await _openBox();
+    return box.values
+        .where((note) => note.synced == false)
+        .toList();
+  }
+  // Wenn Notiz erfolgreich synchronisiert wurde, dann als synchronisiert markiert
+  Future<void> markAsSynced(String noteId) async {
+    final box = await _openBox();
+    final note = box.get(noteId);
+    if (note != null) {
+      note.synced = true;
+      note.lastModified = DateTime.now();
+      await note.save();
+    }
+  }
+
+  Future<void> saveNote(LocalNote note) async {
+    final box = await _openBox();
+    await box.put(note.id, note);
+  }
+
+
+
 }

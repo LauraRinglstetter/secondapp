@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:secondapp/services/auth/local_session.dart';
 import 'package:secondapp/services/local/local_note.dart';
 import 'package:secondapp/services/local/local_paragraph.dart';
+import 'package:secondapp/services/local/local_user.dart';
 import 'package:secondapp/services/note_storage/hive_note_storage.dart';
+import 'package:secondapp/services/remote/couchdb_api.dart';
 
 class CreateUpdateNoteHiveView extends StatefulWidget {
   const CreateUpdateNoteHiveView({super.key});
@@ -15,6 +18,9 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
   final _textController = TextEditingController();
   LocalNote? _note;
   final _noteStorage = HiveNoteStorage();
+  final _shareController = TextEditingController();
+  String? _shareFeedback;
+
 
   @override
   void didChangeDependencies() {
@@ -63,7 +69,7 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
     final note = _note;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Lokale Notiz (Hive)')),
+      appBar: AppBar(title: const Text('Neue Notiz')),
       body: note == null
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -103,6 +109,60 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
                         },
                         child: const Text('Absatz hinzufügen'),
                       ),
+                      const SizedBox(height: 20),
+                        TextField(
+                          controller: _shareController,
+                          decoration: const InputDecoration(
+                            labelText: 'E-Mail-Adresse zum Teilen',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton(
+                          onPressed: () async {
+                            final email = _shareController.text.trim();
+                            final couch = CouchDbApi(
+                              host: 'http://10.0.2.2:5984',
+                              username: 'admin',
+                              password: 'admin',
+                            );
+
+                            final foundUser = await couch.findUserByEmail(email);
+
+                            if (foundUser == null) {
+                              setState(() {
+                                _shareFeedback = '❌ Kein registrierter Nutzer mit dieser E-Mail gefunden';
+                              });
+                              return;
+                            }
+
+                            final targetUserId = foundUser['_id'];
+
+                            if (_note != null) {
+                              await _noteStorage.shareNoteWithUser(
+                                noteId: _note!.id,
+                                otherUserId: targetUserId,
+                              );
+                              setState(() {
+                                _shareFeedback = '✅ Notiz geteilt mit $email';
+                                _shareController.clear();
+                              });
+                            }
+                          },
+                          child: const Text('Teilen'),
+                        ),
+                        if (_shareFeedback != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              _shareFeedback!,
+                              style: TextStyle(
+                                color: _shareFeedback!.startsWith('✅') ? Colors.green : Colors.red,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+
                     ],
                   ),
                 ),

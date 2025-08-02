@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:secondapp/services/remote/couchdb_api.dart';
 import 'package:secondapp/views/notes/notes_view_local.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:secondapp/constants/routes.dart';
 import 'package:secondapp/services/local/local_user.dart';
 import 'package:secondapp/services/auth/local_session.dart';
-import 'package:secondapp/views/notes/notes_view.dart';
 
 class RegisterViewLocal extends StatefulWidget {
   const RegisterViewLocal({super.key});
@@ -45,7 +45,7 @@ class _RegisterViewLocalState extends State<RegisterViewLocal> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Registrieren (Lokal)')),
+      appBar: AppBar(title: const Text('Registrieren')),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -70,6 +70,13 @@ class _RegisterViewLocalState extends State<RegisterViewLocal> {
                 final user = await _register();
                 if (user != null) {
                   LocalSession.setUser(user);
+                  final couch = CouchDbApi(
+                    host: 'http://10.0.2.2:5984',
+                    username: 'admin',
+                    password: 'admin',
+                  );
+
+                  await couch.uploadUser(user);
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (context) => const NotesViewLocal()),
                   );
@@ -81,7 +88,7 @@ class _RegisterViewLocalState extends State<RegisterViewLocal> {
               onPressed: () {
                 Navigator.of(context).pushReplacementNamed(loginLocalRoute);
               },
-              child: const Text('Schon registriert? Login hier.'),
+              child: const Text('Schon registriert? Login hier'),
             ),
           ],
         ),

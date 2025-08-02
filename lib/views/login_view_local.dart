@@ -41,11 +41,31 @@ class _LoginViewLocalState extends State<LoginViewLocal> {
       });
     }
   }
+  Future<void> _deleteUserByEmail(String email) async {
+    final box = await Hive.openBox<LocalUser>('users');
+
+    final userKey = box.keys.firstWhere(
+      (key) => box.get(key)?.email == email,
+      orElse: () => null,
+    );
+
+    if (userKey != null) {
+      await box.delete(userKey);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Nutzer "$email" gelöscht')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Kein Nutzer mit E-Mail "$email" gefunden')),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Lokal anmelden')),
+      appBar: AppBar(title: const Text('Anmelden')),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
