@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:secondapp/services/auth/local_session.dart';
 import 'package:secondapp/services/local/local_paragraph.dart';
 import 'package:uuid/uuid.dart';
 import '../local/local_note.dart';
@@ -9,8 +10,12 @@ class HiveNoteStorage implements NoteStorage {
 
   Future<Box<LocalNote>> _openBox() async {
     if (!Hive.isBoxOpen(boxName)) {
-      Hive.registerAdapter(LocalNoteAdapter());
-      Hive.registerAdapter(LocalParagraphAdapter()); // Wichtig!
+      if (!Hive.isAdapterRegistered(1)) {
+        Hive.registerAdapter(LocalNoteAdapter());
+      }
+      if (!Hive.isAdapterRegistered(2)) {
+        Hive.registerAdapter(LocalParagraphAdapter());
+      }// Wichtig!
       await Hive.openBox<LocalNote>(boxName);
     }
     return Hive.box<LocalNote>(boxName);
@@ -99,8 +104,14 @@ class HiveNoteStorage implements NoteStorage {
   //Liste aller Notizen, die noch nicht synchronisiert wurden
   Future<List<LocalNote>> getUnsyncedNotes() async {
     final box = await _openBox();
+    final currentUserId = LocalSession.currentUser?.id;
+
+    if (currentUserId == null) return [];
+
     return box.values
-        .where((note) => note.synced == false)
+        .where((note) =>
+            note.synced == false &&
+            (note.userId == currentUserId || note.sharedWith.contains(currentUserId)))
         .toList();
   }
   // Wenn Notiz erfolgreich synchronisiert wurde, dann als synchronisiert markiert

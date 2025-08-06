@@ -16,15 +16,15 @@ class NoteSyncService {
     final unsynced = await _storage.getUnsyncedNotes();
 
     for (final note in unsynced) {
-      print('🔄 Versuche, Notiz ${note.id} zu synchronisieren ...');
+      print('Versuche, Notiz ${note.id} zu synchronisieren ...');
 
       final success = await _remote.uploadNote('notes', note);
 
       if (success) {
         await _storage.markAsSynced(note.id);
-        print('✅ Erfolgreich synchronisiert: ${note.id}');
+        print('Erfolgreich synchronisiert: ${note.id}');
       } else {
-        print('❌ Fehler beim Synchronisieren: ${note.id}');
+        print('Fehler beim Synchronisieren: ${note.id}');
       }
     }
   }
@@ -35,10 +35,9 @@ class NoteSyncService {
 
       for (final doc in docs) {
         final id = doc['_id'];
-        final alreadyExists = await _storage.getNoteById(id);
-        if (alreadyExists != null) continue;
 
-        final content = (doc['content'] as List)
+        // Eingehende Paragraphs aus der CouchDB
+        final incomingParagraphs = (doc['content'] as List)
             .map((p) => LocalParagraph(
                   author: p['author'],
                   text: p['text'],
@@ -46,20 +45,57 @@ class NoteSyncService {
                 ))
             .toList();
 
-        final note = LocalNote(
+        final incomingNote = LocalNote(
           id: id,
-          userId: userId,
-          content: content,
+          userId: doc['userId'],
+          content: incomingParagraphs,
           sharedWith: List<String>.from(doc['sharedWith'] ?? []),
           lastModified: DateTime.parse(doc['lastModified']),
           synced: true,
         );
 
-        await _storage.saveNote(note);
+        final existingNote = await _storage.getNoteById(id);
+
+        if (existingNote == null) {
+          await _storage.saveNote(incomingNote);
+          continue;
+        }
+
+        // CRDT-Strategie: combine & deduplicate paragraphs
+        final combined = [...existingNote.content, ...incomingNote.content];
+        final deduplicated = {
+          for (final p in combined)
+            '${p.author}-${p.text}-${p.timestamp.toIso8601String()}': p
+        }.values.toList();
+
+        deduplicated.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+        final mergedNote = existingNote.copyWith(
+          content: deduplicated,
+          sharedWith: incomingNote.sharedWith,
+          lastModified: incomingNote.lastModified.isAfter(existingNote.lastModified)
+              ? incomingNote.lastModified
+              : existingNote.lastModified,
+          synced: existingNote.synced && incomingNote.synced,
+        );
+
+        await _storage.saveNote(mergedNote);
       }
 
       print('⬇️ Notizen aus CouchDB importiert: ${docs.length}');
+
+      final allLocalNotes = await _storage.getAllNotes(ownerUserId: userId);
+      final fetchedIds = docs.map((doc) => doc['_id']).toSet();
+
+      for (final note in allLocalNotes) {
+        if (!fetchedIds.contains(note.id)) {
+          await _storage.deleteNote(documentId: note.id);
+          print('🗑️ Lokal gelöscht, da nicht mehr in CouchDB: ${note.id}');
+        }
+      }
+
     }
+
 
       String _getUserId() {
       // Hole den aktuell eingeloggten Benutzer

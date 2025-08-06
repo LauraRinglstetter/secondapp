@@ -31,4 +31,22 @@ class LocalNote extends HiveObject {
     required this.lastModified,
     this.synced = false,
   });
+  
+  //Für CRDT-Logik
+  LocalNote copyWith({
+    List<LocalParagraph>? content,
+    List<String>? sharedWith,
+    DateTime? lastModified,
+    bool? synced,
+  }) {
+    return LocalNote(
+      id: id,
+      userId: userId,
+      content: content ?? this.content,
+      sharedWith: sharedWith ?? this.sharedWith,
+      lastModified: lastModified ?? this.lastModified,
+      synced: synced ?? this.synced,
+    );
+  }
+
 }

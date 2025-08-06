@@ -1,3 +1,5 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:secondapp/services/auth/local_session.dart';
@@ -6,9 +8,11 @@ import 'package:secondapp/services/local/local_paragraph.dart';
 import 'package:secondapp/services/local/local_user.dart';
 import 'package:secondapp/services/note_storage/hive_note_storage.dart';
 import 'package:secondapp/services/remote/couchdb_api.dart';
+import 'package:secondapp/services/sync/note_sync_service.dart';
 
 class CreateUpdateNoteHiveView extends StatefulWidget {
   const CreateUpdateNoteHiveView({super.key});
+  
 
   @override
   State<CreateUpdateNoteHiveView> createState() => _CreateUpdateNoteHiveViewState();
@@ -20,7 +24,21 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
   final _noteStorage = HiveNoteStorage();
   final _shareController = TextEditingController();
   String? _shareFeedback;
+  late final NoteSyncService _syncService;
+  late final CouchDbApi _couch;
 
+  @override
+  void initState() {
+    super.initState();
+
+    _couch = CouchDbApi(
+      host: kIsWeb ? 'http://localhost:5985' : 'http://10.0.2.2:5984',
+      username: 'admin',
+      password: 'admin',
+    );
+
+    _syncService = NoteSyncService(_noteStorage, _couch);
+  }
 
   @override
   void didChangeDependencies() {
@@ -62,23 +80,30 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
       _note = updated;
       _textController.clear();
     });
+
+    await _syncService.syncNotes();
   }
 
   @override
   Widget build(BuildContext context) {
     final note = _note;
-
+    if (note == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    final sortedContent = [...note.content]
+                ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
     return Scaffold(
       appBar: AppBar(title: const Text('Neue Notiz')),
-      body: note == null
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
+      body: 
+            Column(
               children: [
                 Expanded(
                   child: ListView.builder(
-                    itemCount: note.content.length,
+                    itemCount: sortedContent.length,
                     itemBuilder: (context, index) {
-                      final p = note.content[index];
+                      final p = sortedContent[index];
                       return ListTile(
                         title: Text(p.text),
                         subtitle: Text('${p.author} • ${p.timestamp.toLocal()}'),
@@ -120,9 +145,18 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
                         const SizedBox(height: 8),
                         ElevatedButton(
                           onPressed: () async {
+                            final connectivity = await Connectivity().checkConnectivity();
+                            final isOnline = connectivity != ConnectivityResult.none;
+
+                            if (!isOnline) {
+                              setState(() {
+                                _shareFeedback = 'Du bist offline. Teile die Notiz wenn du wieder Internetverbindung hast.';
+                              });
+                              return;
+                            }
                             final email = _shareController.text.trim();
                             final couch = CouchDbApi(
-                              host: 'http://10.0.2.2:5984',
+                              host: kIsWeb ? 'http://localhost:5985' : 'http://10.0.2.2:5984',
                               username: 'admin',
                               password: 'admin',
                             );
@@ -131,7 +165,7 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
 
                             if (foundUser == null) {
                               setState(() {
-                                _shareFeedback = '❌ Kein registrierter Nutzer mit dieser E-Mail gefunden';
+                                _shareFeedback = 'Kein registrierter Nutzer mit dieser E-Mail gefunden';
                               });
                               return;
                             }

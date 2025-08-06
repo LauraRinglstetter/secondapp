@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:secondapp/constants/routes.dart';
 import 'package:secondapp/views/notes/notes_view_local.dart';
 import 'package:uuid/uuid.dart';
+import 'package:secondapp/services/remote/couchdb_api.dart';
 
 import 'package:secondapp/services/local/local_user.dart';
 import 'package:secondapp/services/auth/local_session.dart';
@@ -16,9 +18,20 @@ class LoginViewLocal extends StatefulWidget {
 }
 
 class _LoginViewLocalState extends State<LoginViewLocal> {
+  late final CouchDbApi _couch;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _couch = const CouchDbApi(
+      host: kIsWeb ? 'http://localhost:5985' : 'http://10.0.2.2:5984',// Für Emulator (oder localhost:5984 für Web)
+      username: 'admin',
+      password: 'admin',
+    );
+  }
 
   Future<void> _login() async {
     final box = Hive.box<LocalUser>('users');
@@ -32,6 +45,27 @@ class _LoginViewLocalState extends State<LoginViewLocal> {
 
     if (user != null) {
       LocalSession.setUser(user);
+      await Hive.box('settings').put('last_user_id', user.id);
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const NotesViewLocal()),
+      );
+      return;
+    }
+
+    // 2. Suche in CouchDB
+    final remoteUser = await _couch.findUserByEmail(email);
+
+    if (remoteUser != null && remoteUser['password'] == password) {
+      // Nutzer in Hive speichern
+      final imported = LocalUser(
+        id: remoteUser['_id'],
+        email: remoteUser['email'],
+        password: remoteUser['password'],
+      );
+      await box.put(imported.id, imported);
+
+      LocalSession.setUser(imported);
+      await Hive.box('settings').put('last_user_id', imported.id);
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const NotesViewLocal()),
       );
@@ -39,25 +73,6 @@ class _LoginViewLocalState extends State<LoginViewLocal> {
       setState(() {
         _error = 'Falsche E-Mail oder Passwort';
       });
-    }
-  }
-  Future<void> _deleteUserByEmail(String email) async {
-    final box = await Hive.openBox<LocalUser>('users');
-
-    final userKey = box.keys.firstWhere(
-      (key) => box.get(key)?.email == email,
-      orElse: () => null,
-    );
-
-    if (userKey != null) {
-      await box.delete(userKey);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Nutzer "$email" gelöscht')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Kein Nutzer mit E-Mail "$email" gefunden')),
-      );
     }
   }
 

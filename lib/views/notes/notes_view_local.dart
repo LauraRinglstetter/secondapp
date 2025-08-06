@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:secondapp/constants/routes.dart';
@@ -32,6 +32,7 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
 
   late final Stream<ConnectivityResult> _connectivityStream;
   late final StreamSubscription<ConnectivityResult> _connectivitySubscription;
+  bool _isOnline = true;
 
   @override
   void initState() {
@@ -39,13 +40,35 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
     _notesService = HiveNoteStorage();
     
     couch = CouchDbApi(
-      host: 'http://10.0.2.2:5984',
+      host: kIsWeb ? 'http://localhost:5985' : 'http://10.0.2.2:5984',
       username: 'admin',
       password: 'admin',
     );
 
     _syncService = NoteSyncService(_notesService, couch);
-    // für automatische Synchronisierung beim App-Start, wenn CouchDB erreichbar ist
+
+    // Direkt beim Start Internetverbindung prüfen
+    Connectivity().checkConnectivity().then((status) {
+      setState(() {
+        _isOnline = status != ConnectivityResult.none;
+      });
+    });
+
+    //  Automatische Erkennung von Online-Verfügbarkeit
+    _connectivityStream = Connectivity().onConnectivityChanged;
+    _connectivitySubscription = _connectivityStream.listen((status) async {
+      final nowOnline = status != ConnectivityResult.none;
+      setState(() {
+        _isOnline = nowOnline;
+      });
+
+      if (nowOnline) {
+        await _syncService.fetchNotesFromCouchDb();
+        await _syncService.syncNotes();
+        if (mounted) setState(() {});
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final isReachable = await couch.ping();
       if (isReachable) {
@@ -54,29 +77,20 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
         setState(() {});
       }
     });
-
-    // 🧠 NEU: Automatische Erkennung von Online-Verfügbarkeit
-    _connectivityStream = Connectivity().onConnectivityChanged;
-    _connectivitySubscription = _connectivityStream.listen((status) async {
-      if (status != ConnectivityResult.none) {
-        print('Verbindung erkannt, starte Sync...');
-        await _syncService.fetchNotesFromCouchDb();
-        await _syncService.syncNotes();
-        if (mounted) setState(() {});
-      }
-    });
   }
-  Future<bool> _hasInternet() async {
-    final result = await Connectivity().checkConnectivity();
-    return result != ConnectivityResult.none;
-  }
-
+  
   //Stream muss beendet werden
   @override
   void dispose() {
     _connectivitySubscription.cancel(); 
     super.dispose();
   }
+  Future<bool> _hasInternet() async {
+    final result = await Connectivity().checkConnectivity();
+    return result != ConnectivityResult.none;
+  }
+
+  
 
   @override
   Widget build(BuildContext context) {
@@ -91,8 +105,10 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
         title: const Text('Deine Notizen'),
         actions: [
           IconButton(
-            onPressed: () {
-              Navigator.of(context).pushNamed(createUpdateNoteHiveView);
+            onPressed: () async {
+              await Navigator.of(context).pushNamed(createUpdateNoteHiveView);
+              await _syncService.syncNotes(); 
+              setState(() {});
             },
             icon: const Icon(Icons.add),
           ),
@@ -137,6 +153,7 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
                   final shouldLogout = await showLogOutDialog(context);
                   if (shouldLogout) {
                     LocalSession.logout();
+                    await Hive.box('settings').delete('last_user_id');
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (_) => const LoginViewLocal()),
                       (_) => false,
@@ -157,7 +174,7 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
       ),
       body: Column(
         children: [
-          const ConnectivityBanner(), // Online/Offline-Indikator
+          ConnectivityBanner(isOnline: _isOnline),// Online/Offline-Indikator
           Expanded(
             child: FutureBuilder(
               future: _notesService.getAllNotes(ownerUserId: userId),
@@ -170,6 +187,7 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
                       currentUserId: userId,
                       onDeleteNote: (note) async {
                         await _notesService.deleteNote(documentId: note.id);
+                        await couch.deleteNote('notes', note.id); // auch in CouchDB löschen
                         setState(() {});
                       },
                       onTap: (note) {

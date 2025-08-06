@@ -34,40 +34,54 @@ class CouchDbApi {
     final uri = _buildUri('/$dbName');
     final response = await http.put(uri, headers: _headers);
     if (response.statusCode == 201) {
-      print('✅ Datenbank "$dbName" wurde erstellt');
+      print(' Datenbank "$dbName" wurde erstellt');
     } else if (response.statusCode == 412) {
-      print('ℹ️ Datenbank "$dbName" existiert bereits');
+      print('ℹDatenbank "$dbName" existiert bereits');
     } else {
-      throw Exception('❌ Fehler beim Erstellen der Datenbank: ${response.body}');
+      throw Exception('Fehler beim Erstellen der Datenbank: ${response.body}');
     }
   }
 
   //Eine Notiz an CouchDB senden, true oder false für Upload erfolgreich oder nicht
   Future<bool> uploadNote(String dbName, LocalNote note) async {
     final uri = _buildUri('/$dbName/${note.id}');
-    final body = jsonEncode({
+
+    // Prüfen, ob das Dokument existiert, um _rev zu bekommen
+    final existingResponse = await http.get(uri, headers: _headers);
+
+    String? rev;
+    if (existingResponse.statusCode == 200) {
+      final existingDoc = jsonDecode(existingResponse.body);
+      rev = existingDoc['_rev'];
+    }
+
+    final body = {
       '_id': note.id,
       'userId': note.userId,
-      'content': note.content
-          .map((p) => {
-                'author': p.author,
-                'text': p.text,
-                'timestamp': p.timestamp.toIso8601String(),
-              })
-          .toList(),
+      'content': note.content.map((p) => {
+        'author': p.author,
+        'text': p.text,
+        'timestamp': p.timestamp.toIso8601String(),
+      }).toList(),
       'sharedWith': note.sharedWith,
       'lastModified': note.lastModified.toIso8601String(),
-    });
+      if (rev != null) '_rev': rev, // Nur senden, wenn vorhanden
+    };
 
-    final response = await http.put(uri, headers: _headers, body: body);
+    final response = await http.put(uri, headers: _headers, body: jsonEncode(body));
+
     return response.statusCode == 201 || response.statusCode == 202;
   }
+
 
     Future<List<Map<String, dynamic>>> fetchNotes(String dbName, String userId) async {
       final uri = _buildUri('/$dbName/_find');
       final body = jsonEncode({
         'selector': {
-          'userId': userId,
+          r'$or': [
+            {'userId': userId},
+            {'sharedWith': {'\$elemMatch': {'\$eq': userId}}}
+          ]
         }
       });
 
@@ -78,10 +92,13 @@ class CouchDbApi {
         final docs = data['docs'] as List<dynamic>;
         return docs.cast<Map<String, dynamic>>();
       } else {
-        print('Fehler beim Abrufen: ${response.statusCode}');
+        print('❌ Fehler beim Abrufen: ${response.statusCode}');
+        print('Antwort: ${response.body}');
         return [];
       }
     }
+
+
     Future<void> uploadUser(LocalUser user) async {
       final uri = _buildUri('/users/${user.id}');
       final body = jsonEncode({
@@ -122,6 +139,26 @@ class CouchDbApi {
         return null;
       }
     }
+
+    Future<void> deleteNote(String dbName, String noteId) async {
+      final uri = _buildUri('/$dbName/$noteId');
+      final getResponse = await http.get(uri, headers: _headers);
+
+      if (getResponse.statusCode == 200) {
+        final rev = jsonDecode(getResponse.body)['_rev'];
+        final deleteUri = _buildUri('/$dbName/$noteId?rev=$rev');
+        final deleteResponse = await http.delete(deleteUri, headers: _headers);
+
+        if (deleteResponse.statusCode == 200 || deleteResponse.statusCode == 202) {
+          print('Notiz $noteId erfolgreich aus CouchDB gelöscht.');
+        } else {
+          print('Fehler beim Löschen der Notiz: ${deleteResponse.body}');
+        }
+      } else {
+        print('Notiz nicht gefunden: ${getResponse.body}');
+      }
+    }
+
 
 
 }

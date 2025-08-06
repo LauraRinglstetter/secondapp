@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:secondapp/services/remote/couchdb_api.dart';
@@ -71,7 +72,7 @@ class _RegisterViewLocalState extends State<RegisterViewLocal> {
                 if (user != null) {
                   LocalSession.setUser(user);
                   final couch = CouchDbApi(
-                    host: 'http://10.0.2.2:5984',
+                    host: kIsWeb ? 'http://localhost:5985' : 'http://10.0.2.2:5984',
                     username: 'admin',
                     password: 'admin',
                   );

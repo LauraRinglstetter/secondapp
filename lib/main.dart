@@ -1,7 +1,3 @@
-//import 'package:secondapp/views/verifiy_email_view.dart';
-//import 'package:secondapp/views/register_view.dart';
-//import 'package:secondapp/views/login_view.dart';
-//import 'package:secondapp/services/auth/auth_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:secondapp/constants/routes.dart';
@@ -13,7 +9,6 @@ import 'package:secondapp/services/remote/couchdb_api.dart';
 import 'package:secondapp/views/login_view_local.dart';
 import 'package:secondapp/views/notes/create_update_note_view.dart';
 import 'package:secondapp/views/notes/create_update_note_view_hive.dart';
-import 'package:secondapp/views/notes/notes_view.dart';
 import 'package:secondapp/views/notes/notes_view_local.dart';
 import 'package:secondapp/views/register_view_local.dart';
 import 'package:flutter/material.dart';
@@ -21,12 +16,25 @@ import 'package:flutter/material.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final appDocumentDir = await getApplicationDocumentsDirectory();
-  await Hive.initFlutter(appDocumentDir.path);
-  Hive.registerAdapter(LocalUserAdapter());
+  await Hive.initFlutter();
+  // Adapter nur registrieren, wenn nicht schon vorhanden
+  if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(LocalUserAdapter());
+  if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(LocalNoteAdapter());
+  if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(LocalParagraphAdapter());
+
+
   await Hive.openBox<LocalUser>('users');
+  await Hive.openBox('settings');
+  final usersBox = Hive.box<LocalUser>('users');
 
-
+  // Prüfe, ob ein "letzter Nutzer" gespeichert wurde
+  final lastUserId = Hive.box('settings').get('last_user_id');
+  if (lastUserId != null) {
+    final lastUser = usersBox.get(lastUserId);
+    if (lastUser != null) {
+      LocalSession.setUser(lastUser);
+    }
+  }
 
 
   runApp(
