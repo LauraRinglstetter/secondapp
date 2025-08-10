@@ -1,11 +1,8 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:secondapp/services/auth/local_session.dart';
 import 'package:secondapp/services/local/local_note.dart';
-import 'package:secondapp/services/local/local_paragraph.dart';
-import 'package:secondapp/services/local/local_user.dart';
 import 'package:secondapp/services/note_storage/hive_note_storage.dart';
 import 'package:secondapp/services/remote/couchdb_api.dart';
 import 'package:secondapp/services/sync/note_sync_service.dart';
@@ -31,11 +28,7 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
   void initState() {
     super.initState();
 
-    _couch = CouchDbApi(
-      host: kIsWeb ? 'http://localhost:5985' : 'http://10.0.2.2:5984',
-      username: 'admin',
-      password: 'admin',
-    );
+    _couch = CouchDbApi.forEnvironment();
 
     _syncService = NoteSyncService(_noteStorage, _couch);
   }
@@ -155,11 +148,7 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
                               return;
                             }
                             final email = _shareController.text.trim();
-                            final couch = CouchDbApi(
-                              host: kIsWeb ? 'http://localhost:5985' : 'http://10.0.2.2:5984',
-                              username: 'admin',
-                              password: 'admin',
-                            );
+                            final couch = CouchDbApi.forEnvironment();
 
                             final foundUser = await couch.findUserByEmail(email);
 

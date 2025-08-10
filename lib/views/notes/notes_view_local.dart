@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
@@ -6,7 +7,6 @@ import 'package:secondapp/constants/routes.dart';
 import 'package:secondapp/enums/menu_action.dart';
 import 'package:secondapp/services/auth/local_session.dart';
 import 'package:secondapp/services/local/local_note.dart';
-import 'package:secondapp/services/local/local_user.dart';
 import 'package:secondapp/services/note_storage/hive_note_storage.dart';
 import 'package:secondapp/services/remote/couchdb_api.dart';
 import 'package:secondapp/utilities/dialogs/logout_dialog.dart';
@@ -32,42 +32,57 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
 
   late final Stream<ConnectivityResult> _connectivityStream;
   late final StreamSubscription<ConnectivityResult> _connectivitySubscription;
-  bool _isOnline = true;
+  bool _isOnline = false;
+
+  Future<bool> _checkInternetAccess() async {
+    try {
+      if (kIsWeb) {
+        return await couch.ping().timeout(const Duration(seconds: 3));
+      } else {
+        final result = await InternetAddress.lookup('example.com')
+            .timeout(const Duration(seconds: 3));
+        return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+      }
+    } catch (_) {
+      return false;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _notesService = HiveNoteStorage();
     
-    couch = CouchDbApi(
-      host: kIsWeb ? 'http://localhost:5985' : 'http://10.0.2.2:5984',
-      username: 'admin',
-      password: 'admin',
-    );
+    couch = CouchDbApi.forEnvironment();
 
     _syncService = NoteSyncService(_notesService, couch);
 
-    // Direkt beim Start Internetverbindung prüfen
-    Connectivity().checkConnectivity().then((status) {
+    // Direkt beim Start Internet testen
+    _checkInternetAccess().then((hasInternet) {
       setState(() {
-        _isOnline = status != ConnectivityResult.none;
+        _isOnline = hasInternet;
       });
     });
 
     //  Automatische Erkennung von Online-Verfügbarkeit
     _connectivityStream = Connectivity().onConnectivityChanged;
     _connectivitySubscription = _connectivityStream.listen((status) async {
-      final nowOnline = status != ConnectivityResult.none;
-      setState(() {
-        _isOnline = nowOnline;
-      });
+    bool nowOnline = false;
 
-      if (nowOnline) {
-        await _syncService.fetchNotesFromCouchDb();
-        await _syncService.syncNotes();
-        if (mounted) setState(() {});
-      }
+    if (status != ConnectivityResult.none) {
+      nowOnline = await _checkInternetAccess();
+    }
+
+    setState(() {
+      _isOnline = nowOnline;
     });
+
+    if (nowOnline) {
+      await _syncService.fetchNotesFromCouchDb();
+      await _syncService.syncNotes();
+      if (mounted) setState(() {});
+    }
+  });
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final isReachable = await couch.ping();
@@ -174,7 +189,11 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
       ),
       body: Column(
         children: [
-          ConnectivityBanner(isOnline: _isOnline),// Online/Offline-Indikator
+          ConnectivityBanner(
+            isOnline: _isOnline,
+            internetCheck: () => couch.ping(),          // nutzt deinen bestehenden Ping
+            checkTimeout: const Duration(seconds: 3),   // optional
+          ),
           Expanded(
             child: FutureBuilder(
               future: _notesService.getAllNotes(ownerUserId: userId),

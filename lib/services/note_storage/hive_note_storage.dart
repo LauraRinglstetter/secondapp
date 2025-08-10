@@ -93,6 +93,14 @@ class HiveNoteStorage implements NoteStorage {
       await note.save();
     }
   }
+  Future<void> markAsSyncFailed(String noteId) async {
+  final box = await _openBox();
+  final note = box.get(noteId);
+  if (note != null) {
+    note.synced = false; // bleibt unsynced
+    await note.save();
+  }
+}
 
 
 

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:secondapp/services/auth/local_session.dart';
 import 'package:secondapp/services/note_storage/hive_note_storage.dart';
 import 'package:secondapp/services/remote/couchdb_api.dart';
@@ -14,17 +13,12 @@ class NoteSyncService {
 
   Future<void> syncNotes() async {
     final unsynced = await _storage.getUnsyncedNotes();
-
     for (final note in unsynced) {
-      print('Versuche, Notiz ${note.id} zu synchronisieren ...');
-
       final success = await _remote.uploadNote('notes', note);
-
       if (success) {
         await _storage.markAsSynced(note.id);
-        print('Erfolgreich synchronisiert: ${note.id}');
       } else {
-        print('Fehler beim Synchronisieren: ${note.id}');
+        await _storage.markAsSyncFailed(note.id);
       }
     }
   }
@@ -82,15 +76,12 @@ class NoteSyncService {
         await _storage.saveNote(mergedNote);
       }
 
-      print('⬇️ Notizen aus CouchDB importiert: ${docs.length}');
-
       final allLocalNotes = await _storage.getAllNotes(ownerUserId: userId);
       final fetchedIds = docs.map((doc) => doc['_id']).toSet();
 
       for (final note in allLocalNotes) {
         if (!fetchedIds.contains(note.id)) {
           await _storage.deleteNote(documentId: note.id);
-          print('🗑️ Lokal gelöscht, da nicht mehr in CouchDB: ${note.id}');
         }
       }
 

@@ -3,12 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:secondapp/constants/routes.dart';
 import 'package:secondapp/views/notes/notes_view_local.dart';
-import 'package:uuid/uuid.dart';
 import 'package:secondapp/services/remote/couchdb_api.dart';
-
 import 'package:secondapp/services/local/local_user.dart';
 import 'package:secondapp/services/auth/local_session.dart';
-import 'package:secondapp/views/notes/notes_view.dart';
 
 class LoginViewLocal extends StatefulWidget {
   const LoginViewLocal({super.key});
@@ -26,11 +23,7 @@ class _LoginViewLocalState extends State<LoginViewLocal> {
   @override
   void initState() {
     super.initState();
-    _couch = const CouchDbApi(
-      host: kIsWeb ? 'http://localhost:5985' : 'http://10.0.2.2:5984',// Für Emulator (oder localhost:5984 für Web)
-      username: 'admin',
-      password: 'admin',
-    );
+    _couch = CouchDbApi.forEnvironment();
   }
 
   Future<void> _login() async {

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:secondapp/services/local/local_note.dart';
 import 'package:secondapp/services/local/local_user.dart';
@@ -14,6 +15,33 @@ class CouchDbApi {
     required this.username,
     required this.password,
   });
+
+  /// Neue Factory: wählt CouchDB-Host abhängig vom Port der Web-App
+  factory CouchDbApi.forEnvironment({
+    String username = 'admin',
+    String password = 'admin',
+  }) {
+    String hostUrl;
+
+    if (kIsWeb) {
+      final port = Uri.base.port;
+      if (port == 8080) {
+        hostUrl = 'http://localhost:5985';
+      } else if (port == 8081) {
+        hostUrl = 'http://localhost:5984';
+      } else {
+        hostUrl = 'http://localhost:5984'; // Fallback
+      }
+    } else {
+      hostUrl = 'http://10.0.2.2:5984'; // Mobile/Emulator
+    }
+
+    return CouchDbApi(
+      host: hostUrl,
+      username: username,
+      password: password,
+    );
+  }
 
   //Hilfsmethode, um URL zu bauen
   Uri _buildUri(String path) => Uri.parse('$host$path');
@@ -92,27 +120,7 @@ class CouchDbApi {
         final docs = data['docs'] as List<dynamic>;
         return docs.cast<Map<String, dynamic>>();
       } else {
-        print('❌ Fehler beim Abrufen: ${response.statusCode}');
-        print('Antwort: ${response.body}');
         return [];
-      }
-    }
-
-
-    Future<void> uploadUser(LocalUser user) async {
-      final uri = _buildUri('/users/${user.id}');
-      final body = jsonEncode({
-        '_id': user.id,
-        'email': user.email,
-        'password': user.password,
-      });
-
-      final response = await http.put(uri, headers: _headers, body: body);
-
-      if (response.statusCode == 201 || response.statusCode == 202) {
-        print('Nutzer erfolgreich in CouchDB gespeichert');
-      } else {
-        print('Fehler beim Speichern des Nutzers: ${response.body}');
       }
     }
     //Für Notizen-Sharing
@@ -135,8 +143,23 @@ class CouchDbApi {
         }
         return null;
       } else {
-        print('Fehler beim Abfragen von Nutzern: ${response.body}');
         return null;
+      }
+    }
+    Future<void> uploadUser(LocalUser user) async {
+      final uri = _buildUri('/users/${user.id}');
+      final body = jsonEncode({
+        '_id': user.id,
+        'email': user.email,
+        'password': user.password,
+      });
+
+      final response = await http.put(uri, headers: _headers, body: body);
+
+      if (response.statusCode == 201 || response.statusCode == 202) {
+        print('Nutzer erfolgreich in CouchDB gespeichert');
+      } else {
+        print('Fehler beim Speichern des Nutzers: ${response.body}');
       }
     }
 

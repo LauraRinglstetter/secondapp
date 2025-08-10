@@ -1,13 +1,10 @@
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:secondapp/constants/routes.dart';
 import 'package:secondapp/services/auth/local_session.dart';
 import 'package:secondapp/services/local/local_note.dart';
 import 'package:secondapp/services/local/local_paragraph.dart';
 import 'package:secondapp/services/local/local_user.dart';
-import 'package:secondapp/services/remote/couchdb_api.dart';
 import 'package:secondapp/views/login_view_local.dart';
-import 'package:secondapp/views/notes/create_update_note_view.dart';
 import 'package:secondapp/views/notes/create_update_note_view_hive.dart';
 import 'package:secondapp/views/notes/notes_view_local.dart';
 import 'package:secondapp/views/register_view_local.dart';
@@ -48,7 +45,6 @@ void main() async {
       routes: {
         registerLocalRoute: (context) => const RegisterViewLocal(),
         loginLocalRoute: (context) => const LoginViewLocal(),
-        createOrUpdateNoteRoute: (context) => const CreateUpdateNoteView(),
         createUpdateNoteHiveView: (context) => const CreateUpdateNoteHiveView(),
         notesLocalRoute: (context) => const NotesViewLocal(),
       }

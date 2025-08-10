@@ -71,11 +71,7 @@ class _RegisterViewLocalState extends State<RegisterViewLocal> {
                 final user = await _register();
                 if (user != null) {
                   LocalSession.setUser(user);
-                  final couch = CouchDbApi(
-                    host: kIsWeb ? 'http://localhost:5985' : 'http://10.0.2.2:5984',
-                    username: 'admin',
-                    password: 'admin',
-                  );
+                  final couch = CouchDbApi.forEnvironment();
 
                   await couch.uploadUser(user);
                   Navigator.of(context).pushReplacement(
