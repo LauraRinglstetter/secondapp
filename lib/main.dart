@@ -24,7 +24,7 @@ void main() async {
   await Hive.openBox('settings');
   final usersBox = Hive.box<LocalUser>('users');
 
-  // Prüfe, ob ein "letzter Nutzer" gespeichert wurde
+  // Prüft, ob letzter Nutzer gespeichert wurde
   final lastUserId = Hive.box('settings').get('last_user_id');
   if (lastUserId != null) {
     final lastUser = usersBox.get(lastUserId);

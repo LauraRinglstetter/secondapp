@@ -180,7 +180,7 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
                             child: Text(
                               _shareFeedback!,
                               style: TextStyle(
-                                color: _shareFeedback!.startsWith('✅') ? Colors.green : Colors.red,
+                                color: _shareFeedback!.startsWith('U+2611') ? Colors.green : Colors.red,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),

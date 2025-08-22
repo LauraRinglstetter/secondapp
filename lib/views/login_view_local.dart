@@ -44,7 +44,6 @@ class _LoginViewLocalState extends State<LoginViewLocal> {
       return;
     }
 
-    // 2. Suche in CouchDB
     final remoteUser = await _couch.findUserByEmail(email);
 
     if (remoteUser != null && remoteUser['password'] == password) {
