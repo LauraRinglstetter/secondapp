@@ -1,7 +1,5 @@
 import 'package:secondapp/services/local/local_note.dart';
 
-//import '../cloud/cloud_note.dart';
-
 abstract class NoteStorage {
   Future<LocalNote> createNote({required String ownerUserId});
   Future<void> deleteNote({required String documentId});

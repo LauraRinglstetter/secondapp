@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 
 class ConnectivityBanner extends StatefulWidget {
   final bool isOnline;
-  /// Optionaler Reachability-Check (z. B. () => couch.ping())
   final Future<bool> Function()? internetCheck;
-  /// (Optional) kleine Wartezeit, um Flackern zu vermeiden
   final Duration checkTimeout;
 
   const ConnectivityBanner({
@@ -19,7 +17,7 @@ class ConnectivityBanner extends StatefulWidget {
 }
 
 class _ConnectivityBannerState extends State<ConnectivityBanner> {
-  bool? _hasInternet; // null = unbekannt/prüfe
+  bool? _hasInternet; 
 
   @override
   void initState() {
@@ -30,7 +28,6 @@ class _ConnectivityBannerState extends State<ConnectivityBanner> {
   @override
   void didUpdateWidget(covariant ConnectivityBanner oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Bei Wechsel auf "online" erneut prüfen. Bei "offline" sofort runterstufen.
     if (!widget.isOnline) {
       _setHasInternet(false);
     } else if (oldWidget.isOnline != widget.isOnline ||
@@ -51,13 +48,11 @@ class _ConnectivityBannerState extends State<ConnectivityBanner> {
     }
     final checker = widget.internetCheck;
     if (checker == null) {
-      // Fallback: altes Verhalten beibehalten
       _setHasInternet(true);
       return;
     }
-    _setHasInternet(null); // "prüfe…"
+    _setHasInternet(null);
     try {
-      // begrenzen, damit es nicht ewig hängt
       final ok = await checker().timeout(widget.checkTimeout, onTimeout: () => false);
       _setHasInternet(ok);
     } catch (_) {
@@ -67,15 +62,12 @@ class _ConnectivityBannerState extends State<ConnectivityBanner> {
 
   @override
   Widget build(BuildContext context) {
-    // Priorität: kein Interface -> offline
     if (!widget.isOnline) {
       return _banner('🔴 Offline', Colors.grey);
     }
-    // Interface da, aber Internet noch unklar -> "prüfe…"
     if (_hasInternet == null) {
       return _banner('🟡 Verbindung wird geprüft…', Colors.amber);
     }
-    // Ergebnis des Internetchecks
     return _hasInternet == true
         ? _banner('🟢 Online', Colors.green)
         : _banner('🔴 Offline', Colors.grey);

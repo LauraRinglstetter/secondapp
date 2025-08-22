@@ -1,10 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:secondapp/services/remote/couchdb_api.dart';
 import 'package:secondapp/views/notes/notes_view_local.dart';
 import 'package:uuid/uuid.dart';
-
 import 'package:secondapp/constants/routes.dart';
 import 'package:secondapp/services/local/local_user.dart';
 import 'package:secondapp/services/auth/local_session.dart';

@@ -1,15 +1,14 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:secondapp/services/auth/local_session.dart';
 import 'package:secondapp/services/local/local_note.dart';
 import 'package:secondapp/services/note_storage/hive_note_storage.dart';
 import 'package:secondapp/services/remote/couchdb_api.dart';
 import 'package:secondapp/services/sync/note_sync_service.dart';
+import 'package:secondapp/utilities/dialogs/cannot_share_empty_note_dialog.dart';
 
 class CreateUpdateNoteHiveView extends StatefulWidget {
   const CreateUpdateNoteHiveView({super.key});
-  
 
   @override
   State<CreateUpdateNoteHiveView> createState() => _CreateUpdateNoteHiveViewState();
@@ -37,15 +36,12 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Nur setzen, wenn noch nicht passiert
     if (_note != null) return;
 
     final maybeNote = ModalRoute.of(context)?.settings.arguments;
     if (maybeNote != null && maybeNote is LocalNote) {
-      // Existierende Notiz wurde übergeben
       _note = maybeNote;
     } else {
-      // Keine Notiz übergeben → neue erstellen
       _createNewNote();
     }
   }
@@ -138,6 +134,10 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
                         const SizedBox(height: 8),
                         ElevatedButton(
                           onPressed: () async {
+                            if (_note == null || _note!.content.isEmpty) {
+                              await showCannotShareEmptyNoteDialog(context);
+                              return;
+                            }
                             final connectivity = await Connectivity().checkConnectivity();
                             final isOnline = connectivity != ConnectivityResult.none;
 
@@ -167,7 +167,7 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
                                 otherUserId: targetUserId,
                               );
                               setState(() {
-                                _shareFeedback = '✅ Notiz geteilt mit $email';
+                                _shareFeedback = 'Notiz geteilt mit $email';
                                 _shareController.clear();
                               });
                             }
@@ -185,7 +185,6 @@ class _CreateUpdateNoteHiveViewState extends State<CreateUpdateNoteHiveView> {
                               ),
                             ),
                           ),
-
                     ],
                   ),
                 ),

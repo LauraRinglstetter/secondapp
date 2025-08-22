@@ -36,7 +36,7 @@ void main() async {
 
   runApp(
     MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Local-First-Edge-Prototyp',
       theme: ThemeData(
        
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
@@ -66,10 +66,3 @@ class HomePage extends StatelessWidget {
     }
   }
 }
-
-
-
-
-
-
-

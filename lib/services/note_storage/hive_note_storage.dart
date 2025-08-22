@@ -15,7 +15,7 @@ class HiveNoteStorage implements NoteStorage {
       }
       if (!Hive.isAdapterRegistered(2)) {
         Hive.registerAdapter(LocalParagraphAdapter());
-      }// Wichtig!
+      }
       await Hive.openBox<LocalNote>(boxName);
     }
     return Hive.box<LocalNote>(boxName);
@@ -78,7 +78,6 @@ class HiveNoteStorage implements NoteStorage {
   Stream<Iterable<LocalNote>> allNotes({required String ownerUserId}) async* {
     final box = await _openBox();
     yield box.values.where((n) => n.userId == ownerUserId);
-    // Hinweis: kein echter Stream, sondern einmalige Ausgabe
   }
 
   Future<void> shareNoteWithUser({
@@ -97,19 +96,15 @@ class HiveNoteStorage implements NoteStorage {
   final box = await _openBox();
   final note = box.get(noteId);
   if (note != null) {
-    note.synced = false; // bleibt unsynced
+    note.synced = false;
     await note.save();
   }
 }
 
-
-
   @override
   Future<void> updateNote({required String documentId, required String text}) async {
-    // noch nicht genutzt → kannst du leer lassen oder richtig implementieren
     throw UnimplementedError('updateNote() ist lokal noch nicht implementiert');
   }
-  //Liste aller Notizen, die noch nicht synchronisiert wurden
   Future<List<LocalNote>> getUnsyncedNotes() async {
     final box = await _openBox();
     final currentUserId = LocalSession.currentUser?.id;
@@ -122,7 +117,6 @@ class HiveNoteStorage implements NoteStorage {
             (note.userId == currentUserId || note.sharedWith.contains(currentUserId)))
         .toList();
   }
-  // Wenn Notiz erfolgreich synchronisiert wurde, dann als synchronisiert markiert
   Future<void> markAsSynced(String noteId) async {
     final box = await _openBox();
     final note = box.get(noteId);
@@ -137,7 +131,4 @@ class HiveNoteStorage implements NoteStorage {
     final box = await _openBox();
     await box.put(note.id, note);
   }
-
-
-
 }

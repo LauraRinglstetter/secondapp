@@ -1,7 +1,7 @@
 import 'package:hive/hive.dart';
 import 'local_paragraph.dart';
 
-part 'local_note.g.dart'; // für den Adapter
+part 'local_note.g.dart'; 
 
 @HiveType(typeId: 0)
 class LocalNote extends HiveObject {
@@ -32,7 +32,6 @@ class LocalNote extends HiveObject {
     this.synced = false,
   });
   
-  //Für CRDT-Logik
   LocalNote copyWith({
     List<LocalParagraph>? content,
     List<String>? sharedWith,
@@ -48,5 +47,4 @@ class LocalNote extends HiveObject {
       synced: synced ?? this.synced,
     );
   }
-
 }

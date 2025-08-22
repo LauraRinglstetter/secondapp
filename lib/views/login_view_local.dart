@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:secondapp/constants/routes.dart';
@@ -68,7 +67,6 @@ class _LoginViewLocalState extends State<LoginViewLocal> {
       });
     }
   }
-
 
   @override
   Widget build(BuildContext context) {

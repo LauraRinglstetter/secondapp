@@ -11,8 +11,7 @@ class LocalUser extends HiveObject {
   final String email;
 
   @HiveField(2)
-  final String password; // In Produktion: Hash verwenden!
-
+  final String password; 
   LocalUser({
     required this.id,
     required this.email,

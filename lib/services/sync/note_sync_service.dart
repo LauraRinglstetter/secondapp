@@ -29,8 +29,6 @@ class NoteSyncService {
 
       for (final doc in docs) {
         final id = doc['_id'];
-
-        // Eingehende Paragraphs aus der CouchDB
         final incomingParagraphs = (doc['content'] as List)
             .map((p) => LocalParagraph(
                   author: p['author'],
@@ -55,7 +53,6 @@ class NoteSyncService {
           continue;
         }
 
-        // CRDT-Strategie: combine & deduplicate paragraphs
         final combined = [...existingNote.content, ...incomingNote.content];
         final deduplicated = {
           for (final p in combined)
@@ -84,15 +81,9 @@ class NoteSyncService {
           await _storage.deleteNote(documentId: note.id);
         }
       }
-
     }
 
-
-      String _getUserId() {
-      // Hole den aktuell eingeloggten Benutzer
-      // (du nutzt wahrscheinlich LocalSession)
+    String _getUserId() {
       return LocalSession.currentUser!.id;
-  }
-
-
+    }
 }

@@ -16,8 +16,6 @@ import 'package:secondapp/services/sync/note_sync_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:secondapp/widgets/connectivity_banner.dart';
 
-
-
 class NotesViewLocal extends StatefulWidget {
   const NotesViewLocal({super.key});
 
@@ -94,7 +92,6 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
     });
   }
   
-  //Stream muss beendet werden
   @override
   void dispose() {
     _connectivitySubscription.cancel(); 
@@ -104,8 +101,6 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
     final result = await Connectivity().checkConnectivity();
     return result != ConnectivityResult.none;
   }
-
-  
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +131,6 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
                 );
                 return;
               }
-
               await _syncService.fetchNotesFromCouchDb();
               await _syncService.syncNotes();
               setState(() {});
@@ -191,8 +185,8 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
         children: [
           ConnectivityBanner(
             isOnline: _isOnline,
-            internetCheck: () => couch.ping(),          // nutzt deinen bestehenden Ping
-            checkTimeout: const Duration(seconds: 3),   // optional
+            internetCheck: () => couch.ping(),          
+            checkTimeout: const Duration(seconds: 3),   
           ),
           Expanded(
             child: FutureBuilder(
@@ -206,7 +200,7 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
                       currentUserId: userId,
                       onDeleteNote: (note) async {
                         await _notesService.deleteNote(documentId: note.id);
-                        await couch.deleteNote('notes', note.id); // auch in CouchDB löschen
+                        await couch.deleteNote('notes', note.id); 
                         setState(() {});
                       },
                       onTap: (note) {
@@ -227,7 +221,6 @@ class _NotesViewLocalState extends State<NotesViewLocal> {
           ),
         ],
       ),
-
     );
   }
 }

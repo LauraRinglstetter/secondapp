@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:secondapp/services/local/local_note.dart';
 import 'package:secondapp/services/local/local_user.dart';
 
-//Klasse kapselt alle Funktionen, um mit CouchD zu kommunizieren
 class CouchDbApi {
   final String host;
   final String username;
@@ -16,7 +15,6 @@ class CouchDbApi {
     required this.password,
   });
 
-  /// Neue Factory: wählt CouchDB-Host abhängig vom Port der Web-App
   factory CouchDbApi.forEnvironment({
     String username = 'admin',
     String password = 'admin',
@@ -30,10 +28,10 @@ class CouchDbApi {
       } else if (port == 8081) {
         hostUrl = 'http://localhost:5984';
       } else {
-        hostUrl = 'http://localhost:5984'; // Fallback
+        hostUrl = 'http://localhost:5984'; 
       }
     } else {
-      hostUrl = 'http://10.0.2.2:5984'; // Mobile/Emulator
+      hostUrl = 'http://10.0.2.2:5984'; 
     }
 
     return CouchDbApi(
@@ -43,10 +41,8 @@ class CouchDbApi {
     );
   }
 
-  //Hilfsmethode, um URL zu bauen
   Uri _buildUri(String path) => Uri.parse('$host$path');
 
-  //HTTP-Header
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
         'Authorization':
@@ -70,11 +66,9 @@ class CouchDbApi {
     }
   }
 
-  //Eine Notiz an CouchDB senden, true oder false für Upload erfolgreich oder nicht
   Future<bool> uploadNote(String dbName, LocalNote note) async {
     final uri = _buildUri('/$dbName/${note.id}');
 
-    // Prüfen, ob das Dokument existiert, um _rev zu bekommen
     final existingResponse = await http.get(uri, headers: _headers);
 
     String? rev;
@@ -93,14 +87,13 @@ class CouchDbApi {
       }).toList(),
       'sharedWith': note.sharedWith,
       'lastModified': note.lastModified.toIso8601String(),
-      if (rev != null) '_rev': rev, // Nur senden, wenn vorhanden
+      if (rev != null) '_rev': rev,
     };
 
     final response = await http.put(uri, headers: _headers, body: jsonEncode(body));
 
     return response.statusCode == 201 || response.statusCode == 202;
   }
-
 
     Future<List<Map<String, dynamic>>> fetchNotes(String dbName, String userId) async {
       final uri = _buildUri('/$dbName/_find');
@@ -123,7 +116,6 @@ class CouchDbApi {
         return [];
       }
     }
-    //Für Notizen-Sharing
     Future<Map<String, dynamic>?> findUserByEmail(String email) async {
       final uri = _buildUri('/users/_find');
       final body = jsonEncode({
@@ -162,7 +154,6 @@ class CouchDbApi {
         print('Fehler beim Speichern des Nutzers: ${response.body}');
       }
     }
-
     Future<void> deleteNote(String dbName, String noteId) async {
       final uri = _buildUri('/$dbName/$noteId');
       final getResponse = await http.get(uri, headers: _headers);
@@ -181,7 +172,4 @@ class CouchDbApi {
         print('Notiz nicht gefunden: ${getResponse.body}');
       }
     }
-
-
-
 }
